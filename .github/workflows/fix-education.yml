@@ -1,0 +1,58 @@
+name: Correct Academic Credentials
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-education.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  correct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correct bachelor and master university details
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          index = Path('index.html')
+          text = index.read_text(encoding='utf-8')
+          pattern = re.compile(
+              r'<article class="degree reveal"><span>2010</span><div><h3>بكالوريوس — جامعة اليمن</h3><p>.*?</p></div></article>',
+              re.S,
+          )
+          replacement = (
+              '<article class="degree reveal"><span>2009</span><div>'
+              '<h3>بكالوريوس تكنولوجيا المعلومات — كلية الحاسبات والمعلومات</h3>'
+              '<p>جامعة القاهرة، مصر — تخصص رئيسي: تكنولوجيا المعلومات، '
+              'وتخصص فرعي: نظم المعلومات — التقدير: جيد جدًا.</p>'
+              '</div></article>'
+          )
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit('Expected bachelor education block was not found exactly once')
+          if 'بكالوريوس — جامعة اليمن' in text:
+              raise SystemExit('Incorrect university text still exists in index.html')
+          index.write_text(text, encoding='utf-8')
+
+          readme = Path('README.md')
+          if readme.exists():
+              r = readme.read_text(encoding='utf-8')
+              r = r.replace(
+                  '- بكالوريوس الحوسبة وتقنية المعلومات، جامعة اليمن، 2010.',
+                  '- بكالوريوس تكنولوجيا المعلومات (تخصص رئيسي) ونظم المعلومات (تخصص فرعي)، كلية الحاسبات والمعلومات، جامعة القاهرة، 2009، بتقدير جيد جدًا.'
+              )
+              readme.write_text(r, encoding='utf-8')
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html README.md 2>/dev/null || git add index.html
+          git commit -m "Correct Cairo University bachelor credentials" || exit 0
+          git push
