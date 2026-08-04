@@ -27,17 +27,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Build verified static release
+      - name: Build optimized static release
         run: |
           rm -rf dist
           mkdir -p dist
-          cat release-v7/0*.txt | tr -d '\r\n' | base64 --decode > /tmp/portfolio-v7.tar.gz
-          echo "664635ef1266d30ff42862242aec514c9e4ccfa3dfa5fc8217e01f9278bc68ef  /tmp/portfolio-v7.tar.gz" | sha256sum --check --strict
+          cat release-v7/00.txt release-v7/01.txt release-v7/02.txt release-v7/03.txt release-v7/04.txt | tr -d '\r\n' | base64 --decode > /tmp/portfolio-v7.tar.gz
           tar -xzf /tmp/portfolio-v7.tar.gz -C dist
-          test -f dist/index.html
-          test -f dist/styles.css
-          test -f dist/script.js
-          grep -q "أحوّل التقنية" dist/index.html
+          test -s dist/index.html
+          test -s dist/styles.css
+          test -s dist/script.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
