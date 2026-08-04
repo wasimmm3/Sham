@@ -4,10 +4,12 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - DEPLOYMENT_STATUS.json
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -38,3 +40,26 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Record successful deployment
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          data = {
+              "status": "deployed",
+              "url": os.environ["PAGE_URL"],
+              "source_commit": os.environ["COMMIT_SHA"],
+              "deployed_at": datetime.now(timezone.utc).isoformat()
+          }
+          with open("DEPLOYMENT_STATUS.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add DEPLOYMENT_STATUS.json
+          git commit -m "Record successful portfolio deployment [skip pages]" || exit 0
+          git push
