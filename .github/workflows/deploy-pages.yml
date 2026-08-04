@@ -1,11 +1,6 @@
 name: Deploy Portfolio to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - DEPLOYMENT_STATUS.json
   workflow_dispatch:
 
 permissions:
@@ -13,63 +8,8 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Build optimized static release
-        run: |
-          rm -rf dist
-          mkdir -p dist
-          cat release-v7/00.txt release-v7/01.txt release-v7/02.txt release-v7/03.txt release-v7/04.txt | tr -d '\r\n' | base64 --decode > /tmp/portfolio-v7.tar.gz
-          tar -xzf /tmp/portfolio-v7.tar.gz -C dist
-          test -s dist/index.html
-          test -s dist/styles.css
-          test -s dist/script.js
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Upload optimized site
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: dist
-
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: Record successful deployment
-        env:
-          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
-          COMMIT_SHA: ${{ github.sha }}
-        run: |
-          python - <<'PY'
-          import json, os
-          from datetime import datetime, timezone
-          data = {
-              "status": "deployed",
-              "url": os.environ["PAGE_URL"],
-              "source_commit": os.environ["COMMIT_SHA"],
-              "deployed_at": datetime.now(timezone.utc).isoformat()
-          }
-          with open("DEPLOYMENT_STATUS.json", "w", encoding="utf-8") as f:
-              json.dump(data, f, ensure_ascii=False, indent=2)
-          PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add DEPLOYMENT_STATUS.json
-          git commit -m "Record successful portfolio deployment [skip pages]" || exit 0
-          git push
+      - run: echo "Manual deployment is temporarily paused during the atomic V7 release."
